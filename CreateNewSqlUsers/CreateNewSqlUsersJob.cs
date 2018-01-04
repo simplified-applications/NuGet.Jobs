@@ -37,12 +37,12 @@ namespace CreateNewSqlUsers
         public override void Init(IDictionary<string, string> jobArgsDictionary)
         {
             _primaryServerUrl = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.PrimaryServerUrl);
-            _secondaryServerUrl = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.SecondaryServerUrl);
+            _secondaryServerUrl = JobConfigurationManager.TryGetArgument(jobArgsDictionary, ArgumentNames.SecondaryServerUrl);
             _databaseName = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.DatabaseName);
             _primaryAdminUsername = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.PrimaryAdminUsername);
             _primaryAdminPassword = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.PrimaryAdminPassword);
-            _secondaryAdminUsername = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.SecondaryAdminUsername);
-            _secondaryAdminPassword = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.SecondaryAdminPassword);
+            _secondaryAdminUsername = JobConfigurationManager.TryGetArgument(jobArgsDictionary, ArgumentNames.SecondaryAdminUsername);
+            _secondaryAdminPassword = JobConfigurationManager.TryGetArgument(jobArgsDictionary, ArgumentNames.SecondaryAdminPassword);
             _newPrincipalPrefix = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.NewPrincipalPrefix);
             _readerRole = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.ReaderRole);
             _writerRole = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.WriterRole);
@@ -62,7 +62,10 @@ namespace CreateNewSqlUsers
                 var secondaryInfo = await CreateLoginOnSecondary(_secondaryServerUrl, _databaseName, _secondaryAdminUsername, _secondaryAdminPassword, primaryInfo);
 
                 await CheckConnection(_primaryServerUrl, _databaseName, primaryInfo.Username, primaryInfo.Password);
-                await CheckConnection(_secondaryServerUrl, _databaseName, secondaryInfo.Username, secondaryInfo.Password);
+                if (secondaryInfo != null)
+                {
+                    await CheckConnection(_secondaryServerUrl, _databaseName, secondaryInfo.Username, secondaryInfo.Password);
+                }
             }
         }
 
@@ -85,6 +88,12 @@ namespace CreateNewSqlUsers
 
         private async Task<SqlUserInfo> CreateLoginOnSecondary(string serverUrl, string databaseName, string adminUser, string adminPassword, SqlUserInfo primaryInfo)
         {
+            if (serverUrl == null || adminUser == null || adminPassword == null)
+            {
+                Logger.LogInformation("No secondary connection information provided. Will not create user on secondary.");
+                return null;
+            }
+
             var principal = primaryInfo.Username;
             var password = GeneratePassword();
             ExportPrincipalToFile(serverUrl, principal, password);
@@ -195,6 +204,11 @@ namespace CreateNewSqlUsers
 
         private async Task CheckConnection(string serverUrl, string databaseName, string username, string password)
         {
+            if (serverUrl == null || username == null || password == null)
+            {
+                Logger.LogInformation("No secondary connection information provided. Will not check connection to secondary.");
+                return;
+            }
             Logger.LogInformation("Testing connection of '{Username}' on database {DatabaseName} of '{ServerUrl}'.", username, databaseName, serverUrl);
             var connectionString = BuildConnectionString(serverUrl, databaseName, username, password);
             using (var connection = new SqlConnection(connectionString))
@@ -220,12 +234,12 @@ namespace CreateNewSqlUsers
         private string GeneratePrincipalName(string roleName)
         {
             var currentDate = DateTime.Now;
-            return $"{_newPrincipalPrefix}{roleName}x{currentDate.Year}{currentDate.Month}{currentDate.Day}";
+            return $"{_newPrincipalPrefix}{roleName}x{currentDate.Year}{currentDate.Month:D2}{currentDate.Day:D2}";
         }
 
         private static string GeneratePassword()
         {
-            return Membership.GeneratePassword(PasswordLength, PasswordNumNonAlphanumericCharacters);
+            return Membership.GeneratePassword(PasswordLength, PasswordNumNonAlphanumericCharacters).Replace(';', ':');
         }
 
         private static void ExportPrincipalToFile(string serverUrl, string principal, string password)
