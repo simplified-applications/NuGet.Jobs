@@ -44,7 +44,7 @@ namespace CreateNewSqlUsers
             _secondaryAdminUsername = JobConfigurationManager.TryGetArgument(jobArgsDictionary, ArgumentNames.SecondaryAdminUsername);
             _secondaryAdminPassword = JobConfigurationManager.TryGetArgument(jobArgsDictionary, ArgumentNames.SecondaryAdminPassword);
             _newPrincipalPrefix = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.NewPrincipalPrefix);
-            _readerRole = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.ReaderRole);
+            _readerRole = JobConfigurationManager.TryGetArgument(jobArgsDictionary, ArgumentNames.ReaderRole);
             _writerRole = JobConfigurationManager.GetArgument(jobArgsDictionary, ArgumentNames.WriterRole);
             _whatIf = JobConfigurationManager.TryGetBoolArgument(jobArgsDictionary, JobArgumentNames.WhatIf);
 
@@ -56,7 +56,13 @@ namespace CreateNewSqlUsers
 
         public override async Task Run()
         {
-            foreach (var roleTuple in new[] { Tuple.Create(ReaderRoleName, _readerRole), Tuple.Create(WriterRoleName, _writerRole) })
+            var roleTuples = new List<Tuple<string, string>> { Tuple.Create(WriterRoleName, _writerRole) };
+            if (_readerRole != null)
+            {
+                roleTuples.Insert(0, Tuple.Create(ReaderRoleName, _readerRole));
+            }
+
+            foreach (var roleTuple in roleTuples)
             {
                 var primaryInfo = await CreateUserAndLoginOnPrimary(_primaryServerUrl, _databaseName, _primaryAdminUsername, _primaryAdminPassword, roleTuple.Item1, roleTuple.Item2);
                 var secondaryInfo = await CreateLoginOnSecondary(_secondaryServerUrl, _databaseName, _secondaryAdminUsername, _secondaryAdminPassword, primaryInfo);
