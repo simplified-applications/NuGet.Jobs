@@ -492,7 +492,7 @@ namespace NuGet.Services.Validation
                 _logger = new Mock<ILogger<ValidatorStateService>>();
 
                 _validationRequest = new Mock<IValidationRequest>();
-                _validationRequest.Setup(x => x.NupkgUrl).Returns(NupkgUrl);
+                _validationRequest.Setup(x => x.BlobUrl).Returns(NupkgUrl);
                 _validationRequest.Setup(x => x.PackageId).Returns(PackageId);
                 _validationRequest.Setup(x => x.PackageKey).Returns(PackageKey);
                 _validationRequest.Setup(x => x.PackageVersion).Returns(PackageVersion);

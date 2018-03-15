@@ -70,9 +70,9 @@ namespace NuGet.Services.Validation.Orchestrator
                 message.PackageVersion,
                 message.ValidationTrackingId))
             {
-                var package = _galleryPackageService.FindPackageByIdAndVersionStrict(message.PackageId, message.PackageVersion);
+                IValidatable validatable = TryGetValidatable(message);
 
-                if (package == null)
+                if (validatable == null)
                 {
                     // no package in DB yet. Might have received message a bit early, need to retry later
                     if (message.DeliveryCount - 1 >= _configs.MissingPackageRetryCount)
@@ -99,7 +99,7 @@ namespace NuGet.Services.Validation.Orchestrator
                     }
                 }
 
-                var validationSet = await _validationSetProvider.TryGetOrCreateValidationSetAsync(message.ValidationTrackingId, package);
+                var validationSet = await _validationSetProvider.TryGetOrCreateValidationSetAsync(message.ValidationTrackingId, validatable);
 
                 if (validationSet == null)
                 {
@@ -110,10 +110,28 @@ namespace NuGet.Services.Validation.Orchestrator
                     return true;
                 }
 
-                await _validationSetProcessor.ProcessValidationsAsync(validationSet, package);
-                await _validationOutcomeProcessor.ProcessValidationOutcomeAsync(validationSet, package);
+                await _validationSetProcessor.ProcessValidationsAsync(validationSet, validatable);
+                await _validationOutcomeProcessor.ProcessValidationOutcomeAsync(validationSet, validatable);
             }
             return true;
+        }
+
+        private IValidatable TryGetValidatable(PackageValidationMessageData message)
+        {
+            var package = _galleryPackageService.FindPackageByIdAndVersionStrict(message.PackageId, message.PackageVersion);
+
+            if (package == null)
+            {
+                return null;
+            }
+
+            var validatable = CreatePV(package);
+            return validatable;
+        }
+
+        private PackageValidatable CreatePV(Package package)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -9,21 +9,15 @@ namespace NuGet.Services.Validation.Orchestrator
     {
         public Guid ValidationId { get; }
 
-        public int PackageKey { get; }
+        public IValidatable Validatable { get; }
 
-        public string PackageId { get; }
+        public string BlobUrl { get; }
 
-        public string PackageVersion { get; }
-
-        public string NupkgUrl { get; }
-
-        public ValidationRequest(Guid validationId, int packageKey, string packageId, string packageVersion, string nupkgUrl)
+        public ValidationRequest(Guid validationId, IValidatable validatable, string blobUrl)
         {
             ValidationId = validationId;
-            PackageKey = packageKey;
-            PackageId = packageId;
-            PackageVersion = packageVersion;
-            NupkgUrl = nupkgUrl;
+            Validatable = validatable;
+            BlobUrl = blobUrl;
         }
     }
 }

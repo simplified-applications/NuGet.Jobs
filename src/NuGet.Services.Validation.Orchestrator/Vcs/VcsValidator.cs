@@ -125,7 +125,7 @@ namespace NuGet.Services.Validation.Vcs
                         Id = normalizedPackageId,
                         NormalizedVersion = normalizedPackageVerison,
                         Version = normalizedPackageVerison,
-                        DownloadUrl = new Uri(request.NupkgUrl),
+                        DownloadUrl = new Uri(request.BlobUrl),
                     },
                     new[] { ValidatorName },
                     request.ValidationId);

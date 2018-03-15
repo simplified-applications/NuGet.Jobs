@@ -50,7 +50,7 @@ namespace NuGet.Services.Validation.PackageSigning
             Assert.Equal(_validationRequest.Object.ValidationId, message.ValidationId);
             Assert.Equal(_validationRequest.Object.PackageId, message.PackageId);
             Assert.Equal(_validationRequest.Object.PackageVersion, message.PackageVersion);
-            Assert.Equal(_validationRequest.Object.NupkgUrl, message.NupkgUri.AbsoluteUri);
+            Assert.Equal(_validationRequest.Object.BlobUrl, message.NupkgUri.AbsoluteUri);
             _serializer.Verify(
                 x => x.Serialize(It.IsAny<SignatureValidationMessage>()),
                 Times.Once);
@@ -75,7 +75,7 @@ namespace NuGet.Services.Validation.PackageSigning
             _validationRequest.Setup(x => x.ValidationId).Returns(new Guid("ab2629ce-2d67-403a-9a42-49748772ae90"));
             _validationRequest.Setup(x => x.PackageId).Returns("NuGet.Versioning");
             _validationRequest.Setup(x => x.PackageVersion).Returns("4.6.0");
-            _validationRequest.Setup(x => x.NupkgUrl).Returns("http://example/nuget.versioning.4.6.0.nupkg?my-sas");
+            _validationRequest.Setup(x => x.BlobUrl).Returns("http://example/nuget.versioning.4.6.0.nupkg?my-sas");
             _brokeredMessage.SetupProperty(x => x.ScheduledEnqueueTimeUtc);
 
             _topicClient = new Mock<ITopicClient>();

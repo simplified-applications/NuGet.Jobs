@@ -37,14 +37,15 @@ namespace NuGet.Services.Validation.Orchestrator
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<PackageValidationSet> TryGetOrCreateValidationSetAsync(Guid validationTrackingId, Package package)
+        public async Task<PackageValidationSet> TryGetOrCreateValidationSetAsync(Guid validationTrackingId, IValidatable validatable)
         {
             var validationSet = await _validationStorageService.GetValidationSetAsync(validationTrackingId);
 
             if (validationSet == null)
             {
                 var shouldSkip = await _validationStorageService.OtherRecentValidationSetForPackageExists(
-                    package.Key,
+                    validatable.EntityType,
+                    validatable.EntityKey,
                     _validationConfiguration.NewValidationRequestDeduplicationWindow,
                     validationTrackingId);
                 if (shouldSkip)
@@ -52,93 +53,45 @@ namespace NuGet.Services.Validation.Orchestrator
                     return null;
                 }
 
-                validationSet = InitializeValidationSet(validationTrackingId, package);
+                validationSet = InitializeValidationSet(validationTrackingId, validatable);
 
-                if (package.PackageStatusKey == PackageStatus.Available)
-                {
-                    var packageETag = await _packageFileService.CopyPackageFileForValidationSetAsync(validationSet);
+                await validatable.EnrichNewValidationSet(validationSet);
 
-                    // This indicates that the package in the package container is expected to not change.
-                    validationSet.PackageETag = packageETag;
-                }
-                else
-                {
-                    await _packageFileService.CopyValidationPackageForValidationSetAsync(validationSet);
-
-                    // This indicates that the package in the packages container is expected to not exist (i.e. it has
-                    // has no etag at all).
-                    validationSet.PackageETag = null;
-                }
-
-                validationSet = await PersistValidationSetAsync(validationSet, package);
+                validationSet = await PersistValidationSetAsync(validationSet, validatable);
             }
             else
             {
-                var sameId = package.PackageRegistration.Id.Equals(
-                    validationSet.PackageId,
-                    StringComparison.InvariantCultureIgnoreCase);
-
-                var sameVersion = package.NormalizedVersion.Equals(
-                    validationSet.PackageNormalizedVersion,
-                    StringComparison.InvariantCultureIgnoreCase);
-
-                if (!sameId || !sameVersion)
-                {
-                    throw new InvalidOperationException(
-                        $"Validation set package identity ({validationSet.PackageId} {validationSet.PackageNormalizedVersion})" +
-                        $"does not match expected package identity ({package.PackageRegistration.Id} {package.NormalizedVersion}).");
-                }
-
-                var sameKey = package.Key == validationSet.PackageKey;
-                
-                if (!sameKey)
-                {
-                    throw new InvalidOperationException($"Validation set package key ({validationSet.PackageKey}) " +
-                        $"does not match expected package key ({package.Key}).");
-                }
+                await validatable.EnsureValidationSetMatches(validationSet);
             }
 
             return validationSet;
         }
 
-        private async Task<PackageValidationSet> PersistValidationSetAsync(PackageValidationSet validationSet, Package package)
+        private async Task<PackageValidationSet> PersistValidationSetAsync(PackageValidationSet validationSet, IValidatable validatable)
         {
-            _logger.LogInformation("Persisting validation set {ValidationSetId} for package {PackageId} {PackageVersion} (package key {PackageKey})",
+            _logger.LogInformation("Persisting validation set {ValidationSetId} for {Validatable}",
                 validationSet.ValidationTrackingId,
-                package.PackageRegistration.Id,
-                package.NormalizedVersion,
-                package.Key);
+                validatable.ToString());
 
             var persistedValidationSet = await _validationStorageService.CreateValidationSetAsync(validationSet);
 
-            // Only track the validation set creation time when this is the first validation set to be created for that
-            // package. There will be more than one validation set when an admin has requested a manual revalidation.
-            // This can happen much later than when the package was created so the duration is less interesting in that
-            // case.
-            if (await _validationStorageService.GetValidationSetCountAsync(package.Key) == 1)
-            {
-                _telemetryService.TrackDurationToValidationSetCreation(validationSet.Created - package.Created);
-            }
+            await validatable.OnFirstValidationCreated(validationSet);
 
             return persistedValidationSet;
         }
 
-        private PackageValidationSet InitializeValidationSet(Guid validationTrackingId, Package package)
+        private PackageValidationSet InitializeValidationSet(Guid validationTrackingId, IValidatable validatable)
         {
-            _logger.LogInformation("Initializing validation set {ValidationSetId} for package {PackageId} {PackageVersion} (package key {PackageKey})",
+            _logger.LogInformation("Initializing validation set {ValidationSetId} for {Validatable})",
                 validationTrackingId,
-                package.PackageRegistration.Id,
-                package.NormalizedVersion,
-                package.Key);
+                validatable.ToString());
 
             var now = DateTime.UtcNow;
 
             var validationSet = new PackageValidationSet
             {
                 Created = now,
-                PackageId = package.PackageRegistration.Id,
-                PackageNormalizedVersion = package.NormalizedVersion,
-                PackageKey = package.Key,
+                PackageKey = validatable.EntityKey,
                 PackageValidations = new List<PackageValidation>(),
                 Updated = now,
                 ValidationTrackingId = validationTrackingId,

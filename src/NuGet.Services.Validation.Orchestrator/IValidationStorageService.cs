@@ -30,7 +30,7 @@ namespace NuGet.Services.Validation.Orchestrator
         /// </summary>
         /// <param name="packageKey">The package key.</param>
         /// <returns>The count.</returns>
-        Task<int> GetValidationSetCountAsync(int packageKey);
+        Task<int> GetValidationSetCountAsync(string entityType, int entityKey);
 
         /// <summary>
         /// Updates the passed <see cref="PackageValidation"/> with the validation result's status,
@@ -76,7 +76,8 @@ namespace NuGet.Services.Validation.Orchestrator
         /// <param name="currentValidationSetTrackingId">Validation set tracking for the currently processed request.</param>
         /// <returns>True if validation set exists, false otherwise.</returns>
         Task<bool> OtherRecentValidationSetForPackageExists(
-            int packageKey,
+            string entityType,
+            int entityKey,
             TimeSpan recentDuration,
             Guid currentValidationSetTrackingId);
     }

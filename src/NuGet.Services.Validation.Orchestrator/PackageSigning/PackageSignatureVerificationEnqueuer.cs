@@ -41,7 +41,7 @@ namespace NuGet.Services.Validation.PackageSigning
             var message = new SignatureValidationMessage(
                 request.PackageId,
                 request.PackageVersion,
-                new Uri(request.NupkgUrl),
+                new Uri(request.BlobUrl),
                 request.ValidationId);
             var brokeredMessage = _serializer.Serialize(message);
 

@@ -286,8 +286,8 @@ namespace NuGet.Services.Validation.Orchestrator.Tests
             validator
                 .Verify(v => v.GetResultAsync(It.IsAny<IValidationRequest>()), Times.AtLeastOnce());
             Assert.NotNull(validationRequest);
-            Assert.Contains(ValidationSet.ValidationTrackingId.ToString(), validationRequest.NupkgUrl);
-            Assert.Contains(ValidationContainerName, validationRequest.NupkgUrl);
+            Assert.Contains(ValidationSet.ValidationTrackingId.ToString(), validationRequest.BlobUrl);
+            Assert.Contains(ValidationContainerName, validationRequest.BlobUrl);
             Assert.Equal(Package.PackageRegistration.Id, validationRequest.PackageId);
             Assert.Equal(Package.NormalizedVersion, validationRequest.PackageVersion);
         }
