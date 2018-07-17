@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NuGet.Services.ServiceBus;
-using NuGet.Services.Validation;
 
 namespace NuGet.Jobs.Validation.ScanAndSign
 {
@@ -16,13 +15,13 @@ namespace NuGet.Jobs.Validation.ScanAndSign
         private readonly ITopicClient _topicClient;
         private readonly IBrokeredMessageSerializer<ScanAndSignMessage> _serializer;
         private readonly ScanAndSignEnqueuerConfiguration _configuration;
-        private readonly ILogger<IScanAndSignEnqueuer> _logger;
+        private readonly ILogger<ScanAndSignEnqueuer> _logger;
 
         public ScanAndSignEnqueuer(
             ITopicClient topicClient,
             IBrokeredMessageSerializer<ScanAndSignMessage> serializer,
             IOptionsSnapshot<ScanAndSignEnqueuerConfiguration> configurationAccessor,
-            ILogger<IScanAndSignEnqueuer> logger)
+            ILogger<ScanAndSignEnqueuer> logger)
         {
             _topicClient = topicClient ?? throw new ArgumentNullException(nameof(topicClient));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
