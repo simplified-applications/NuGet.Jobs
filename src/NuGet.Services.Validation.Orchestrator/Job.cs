@@ -516,6 +516,10 @@ namespace NuGet.Services.Validation.Orchestrator
                 .As<IContentFileMetadataService>();
 
             builder
+                .RegisterType<OrchestratorCloudBlobFolderDescription>()
+                .As<ICloudBlobFolderDescription>();
+
+            builder
                 .RegisterType<CoreLicenseFileService>()
                 .WithKeyedParameter(typeof(ICoreFileStorageService), CoreLicenseFileServiceBindingKey)
                 .As<ICoreLicenseFileService>();
