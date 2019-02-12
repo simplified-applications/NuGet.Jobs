@@ -29,6 +29,7 @@ namespace Validation.Symbols
             services.AddTransient<IMessageHandler<SymbolsValidatorMessage>, SymbolsValidatorMessageHandler>();
             services.AddTransient<ISymbolsValidatorService, SymbolsValidatorService>();
             services.AddTransient<IZipArchiveService, ZipArchiveService>();
+            services.AddTransient<ICloudBlobFolderDescription, ValidationCloudBlobFolderDescription>();
             services.AddSingleton<ISymbolsFileService>(c =>
             {
                 var configurationAccessor = c.GetRequiredService<IOptionsSnapshot<SymbolsValidatorConfiguration>>();

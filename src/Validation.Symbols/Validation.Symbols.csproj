@@ -55,6 +55,7 @@
     <Compile Include="SymbolsValidatorService.cs" />
     <Compile Include="SymbolsValidatorMessageHandler.cs" />
     <Compile Include="TelemetryService.cs" />
+    <Compile Include="ValidationCloudBlobFolderDescription.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -4,16 +4,17 @@
 using System;
 using NuGetGallery;
 
-namespace NuGet.Services.Validation.Orchestrator
+namespace Validation.Symbols
 {
-    internal class OrchestratorCloudBlobFolderDescription : ICloudBlobFolderDescription
+    internal class ValidationCloudBlobFolderDescription : ICloudBlobFolderDescription
     {
         public string GetCacheControl(string folderName)
         {
             switch (folderName)
             {
-                case CoreConstants.Folders.FlatContainerFolderName:
-                    return null;
+                case CoreConstants.Folders.PackagesFolderName:
+                case CoreConstants.Folders.SymbolPackagesFolderName:
+                    return CoreConstants.DefaultCacheControl;
 
                 default:
                     throw new InvalidOperationException($"The folder name '{folderName}' is not supported");
@@ -24,7 +25,8 @@ namespace NuGet.Services.Validation.Orchestrator
         {
             switch (folderName)
             {
-                case CoreConstants.Folders.FlatContainerFolderName:
+                case CoreConstants.Folders.PackagesFolderName:
+                case CoreConstants.Folders.SymbolPackagesFolderName:
                     return CoreConstants.PackageContentType;
 
                 default:
@@ -36,7 +38,8 @@ namespace NuGet.Services.Validation.Orchestrator
         {
             switch (folderName)
             {
-                case CoreConstants.Folders.FlatContainerFolderName:
+                case CoreConstants.Folders.PackagesFolderName:
+                case CoreConstants.Folders.SymbolPackagesFolderName:
                     return true;
 
                 default:
