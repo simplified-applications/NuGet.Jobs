@@ -13,6 +13,7 @@ namespace NuGet.Services.Validation.Orchestrator
             switch (folderName)
             {
                 case CoreConstants.Folders.FlatContainerFolderName:
+                case CoreConstants.Folders.PackageBackupsFolderName:
                 case CoreConstants.Folders.ValidationFolderName:
                     return null;
 
@@ -27,6 +28,7 @@ namespace NuGet.Services.Validation.Orchestrator
             {
                 case CoreConstants.Folders.FlatContainerFolderName:
                 case CoreConstants.Folders.ValidationFolderName:
+                case CoreConstants.Folders.PackageBackupsFolderName:
                     return CoreConstants.PackageContentType;
 
                 default:
@@ -39,6 +41,7 @@ namespace NuGet.Services.Validation.Orchestrator
             switch (folderName)
             {
                 case CoreConstants.Folders.FlatContainerFolderName:
+                case CoreConstants.Folders.PackageBackupsFolderName:
                     return true;
 
                 case CoreConstants.Folders.ValidationFolderName:
