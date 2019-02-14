@@ -17,6 +17,9 @@ namespace NuGet.Services.Validation.Orchestrator
                 case CoreConstants.Folders.ValidationFolderName:
                     return null;
 
+                case CoreConstants.Folders.PackagesFolderName:
+                    return CoreConstants.DefaultCacheControl;
+
                 default:
                     throw new InvalidOperationException($"The folder name '{folderName}' is not supported");
             }
@@ -29,6 +32,7 @@ namespace NuGet.Services.Validation.Orchestrator
                 case CoreConstants.Folders.FlatContainerFolderName:
                 case CoreConstants.Folders.ValidationFolderName:
                 case CoreConstants.Folders.PackageBackupsFolderName:
+                case CoreConstants.Folders.PackagesFolderName:
                     return CoreConstants.PackageContentType;
 
                 default:
@@ -42,6 +46,7 @@ namespace NuGet.Services.Validation.Orchestrator
             {
                 case CoreConstants.Folders.FlatContainerFolderName:
                 case CoreConstants.Folders.PackageBackupsFolderName:
+                case CoreConstants.Folders.PackagesFolderName:
                     return true;
 
                 case CoreConstants.Folders.ValidationFolderName:
