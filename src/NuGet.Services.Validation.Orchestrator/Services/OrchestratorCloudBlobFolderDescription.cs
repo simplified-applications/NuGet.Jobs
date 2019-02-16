@@ -13,6 +13,7 @@ namespace NuGet.Services.Validation.Orchestrator
             switch (folderName)
             {
                 case CoreConstants.Folders.FlatContainerFolderName:
+                    return null;
 
                 default:
                     return base.GetCacheControl(folderName);
