@@ -11,7 +11,7 @@ using NuGet.Services.Validation.Orchestrator.Telemetry;
 
 namespace NuGet.Services.Validation.Orchestrator
 {
-    public class PackageValidationMessageHandler : IMessageHandler<PackageValidationMessageData>
+    public class PackageValidationMessageHandler : ITransactionalCompleteAndSendMessageHandler<PackageValidationMessageData>
     {
         private readonly ValidationConfiguration _configs;
         private readonly IEntityService<Package> _galleryPackageService;
@@ -58,7 +58,7 @@ namespace NuGet.Services.Validation.Orchestrator
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<bool> HandleAsync(PackageValidationMessageData message)
+        public async Task<Func<Task>> HandleAsync(PackageValidationMessageData message)
         {
             if (message == null)
             {
@@ -87,7 +87,8 @@ namespace NuGet.Services.Validation.Orchestrator
                             message.PackageNormalizedVersion,
                             message.ValidationTrackingId.ToString());
 
-                        return true;
+                        // Need to stop processing the message, so will not resend
+                        return () => Task.CompletedTask;
                     }
                     else
                     {
@@ -95,7 +96,7 @@ namespace NuGet.Services.Validation.Orchestrator
                             message.PackageId,
                             message.PackageNormalizedVersion);
 
-                        return false;
+                        return null;
                     }
                 }
 
@@ -109,7 +110,8 @@ namespace NuGet.Services.Validation.Orchestrator
                         package.Key,
                         message.ValidationTrackingId);
 
-                    return true;
+                    // Nothing to validate anymore, so will not resend
+                    return () => Task.CompletedTask;
                 }
 
                 var validationSet = await _validationSetProvider.TryGetOrCreateValidationSetAsync(message, package);
@@ -120,13 +122,14 @@ namespace NuGet.Services.Validation.Orchestrator
                         message.PackageId,
                         message.PackageNormalizedVersion,
                         message.ValidationTrackingId);
-                    return true;
+
+                    // Suppressing duplicate message
+                    return () => Task.CompletedTask;
                 }
 
                 var processorStats = await _validationSetProcessor.ProcessValidationsAsync(validationSet);
-                await _validationOutcomeProcessor.ProcessValidationOutcomeAsync(validationSet, package, processorStats);
+                return await _validationOutcomeProcessor.ProcessValidationOutcomeAsync(validationSet, package, processorStats);
             }
-            return true;
         }
     }
 }

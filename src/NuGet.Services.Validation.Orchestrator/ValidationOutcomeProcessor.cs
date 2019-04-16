@@ -52,7 +52,7 @@ namespace NuGet.Services.Validation.Orchestrator
             _validationConfigurationsByName = _validationConfiguration.Validations.ToDictionary(v => v.Name);
         }
 
-        public async Task ProcessValidationOutcomeAsync(PackageValidationSet validationSet, IValidatingEntity<T> validatingEntity, ValidationSetProcessorResult currentCallStats)
+        public async Task<Func<Task>> ProcessValidationOutcomeAsync(PackageValidationSet validationSet, IValidatingEntity<T> validatingEntity, ValidationSetProcessorResult currentCallStats)
         {
             var failedValidations = GetFailedValidations(validationSet);
 
@@ -119,7 +119,7 @@ namespace NuGet.Services.Validation.Orchestrator
 
                 if (AreOptionalValidationsRunning(validationSet))
                 {
-                    await ScheduleCheckIfNotTimedOut(validationSet, validatingEntity, tooLongNotificationAllowed: false);
+                    return () => ScheduleCheckIfNotTimedOut(validationSet, validatingEntity, tooLongNotificationAllowed: false);
                 }
                 else
                 {
@@ -128,8 +128,10 @@ namespace NuGet.Services.Validation.Orchestrator
             }
             else
             {
-                await ScheduleCheckIfNotTimedOut(validationSet, validatingEntity, tooLongNotificationAllowed: true);
+                return () => ScheduleCheckIfNotTimedOut(validationSet, validatingEntity, tooLongNotificationAllowed: true);
             }
+
+            return () => Task.CompletedTask;
         }
 
         private void TrackValidationSetCompletion(PackageValidationSet validationSet, bool isSuccess)

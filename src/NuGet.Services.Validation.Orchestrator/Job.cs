@@ -529,10 +529,12 @@ namespace NuGet.Services.Validation.Orchestrator
             switch (validatingType)
             {
                 case ValidatingType.Package:
-                    services.AddTransient<IMessageHandler<PackageValidationMessageData>, PackageValidationMessageHandler>();
+                    services.AddTransient<ITransactionalCompleteAndSendMessageHandler<PackageValidationMessageData>, PackageValidationMessageHandler>();
+                    services.AddTransient<IBaseMessageHandler<PackageValidationMessageData, Func<Task>>, PackageValidationMessageHandler>();
                     break;
                 case ValidatingType.SymbolPackage:
                     services.AddTransient<IMessageHandler<PackageValidationMessageData>, SymbolValidationMessageHandler>();
+                    services.AddTransient<IBaseMessageHandler<PackageValidationMessageData, bool>, SymbolValidationMessageHandler>();
                     break;
                 default:
                     throw new NotImplementedException($"Unknown type: {validatingType}");

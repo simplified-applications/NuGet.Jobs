@@ -56,9 +56,9 @@ namespace NuGet.Services.Validation.Orchestrator.Tests
 
             var handler = CreateHandler();
 
-            Assert.False(await handler.HandleAsync(OverrideDeliveryCount(messageData, deliveryCount: 1)));
-            Assert.False(await handler.HandleAsync(OverrideDeliveryCount(messageData, deliveryCount: 2)));
-            Assert.True(await handler.HandleAsync(OverrideDeliveryCount(messageData, deliveryCount: 3)));
+            Assert.Null(await handler.HandleAsync(OverrideDeliveryCount(messageData, deliveryCount: 1)));
+            Assert.Null(await handler.HandleAsync(OverrideDeliveryCount(messageData, deliveryCount: 2)));
+            Assert.NotNull(await handler.HandleAsync(OverrideDeliveryCount(messageData, deliveryCount: 3)));
 
             CorePackageServiceMock.Verify(ps => ps.FindPackageByIdAndVersionStrict("packageId", "1.2.3"), Times.Exactly(3));
             TelemetryServiceMock.Verify(t => t.TrackMissingPackageForValidationMessage("packageId", "1.2.3", validationTrackingId.ToString()), Times.Once);
@@ -99,7 +99,7 @@ namespace NuGet.Services.Validation.Orchestrator.Tests
 
             var result = await handler.HandleAsync(messageData);
 
-            Assert.True(result);
+            Assert.NotNull(result);
             CorePackageServiceMock
                 .Verify(ps => ps.FindPackageByIdAndVersionStrict(messageData.PackageId, messageData.PackageVersion), Times.Once());
             ValidationSetProviderMock
@@ -122,7 +122,7 @@ namespace NuGet.Services.Validation.Orchestrator.Tests
 
             var result = await handler.HandleAsync(messageData);
 
-            Assert.True(result);
+            Assert.NotNull(result);
             CorePackageServiceMock
                 .Verify(ps => ps.FindPackageByIdAndVersionStrict(messageData.PackageId, messageData.PackageVersion), Times.Once);
         }

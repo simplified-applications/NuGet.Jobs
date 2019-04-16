@@ -1,6 +1,7 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Threading.Tasks;
 using NuGet.Services.Entities;
 
@@ -22,6 +23,6 @@ namespace NuGet.Services.Validation.Orchestrator
         /// <param name="currentCallStats">Contains information about what happened during current message processing in
         /// the validation set processor.</param>
         /// <returns>A task that completes when the outcome has been processed</returns>
-        Task ProcessValidationOutcomeAsync(PackageValidationSet validationSet, IValidatingEntity<T> validatingEntity, ValidationSetProcessorResult currentCallStats);
+        Task<Func<Task>> ProcessValidationOutcomeAsync(PackageValidationSet validationSet, IValidatingEntity<T> validatingEntity, ValidationSetProcessorResult currentCallStats);
     }
 }
