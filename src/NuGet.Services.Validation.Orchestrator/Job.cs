@@ -314,14 +314,15 @@ namespace NuGet.Services.Validation.Orchestrator
                 .As<IProcessSignatureEnqueuer>();
 
             containerBuilder
-                .RegisterType<ScopedMessageHandler<PackageValidationMessageData>>()
-                .Keyed<IMessageHandler<PackageValidationMessageData>>(OrchestratorBindingKey);
+                .RegisterType<BaseScopedMessageHandler<PackageValidationMessageData, Func<Task>>>()
+                .Keyed<IBaseMessageHandler<PackageValidationMessageData, Func<Task>>>(OrchestratorBindingKey);
+                //.Keyed<IBaseMessageHandler<PackageValidationMessageData, bool>>(OrchestratorBindingKey);
 
             containerBuilder
                 .RegisterTypeWithKeyedParameter<
-                    ISubscriptionProcessor<PackageValidationMessageData>, 
-                    SubscriptionProcessor<PackageValidationMessageData>, 
-                    IMessageHandler<PackageValidationMessageData>>(
+                    ISubscriptionProcessor<PackageValidationMessageData>,
+                    TransactionalCompleteAndSendSubscriptionProcessor<PackageValidationMessageData>,
+                    IBaseMessageHandler<PackageValidationMessageData, Func<Task>>>(
                         OrchestratorBindingKey);
 
             // Configure the email enqueuer.
