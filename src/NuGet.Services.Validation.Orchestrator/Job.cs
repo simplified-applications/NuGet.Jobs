@@ -309,8 +309,7 @@ namespace NuGet.Services.Validation.Orchestrator
                     (pi, ctx) => ctx.ResolveKeyed<TopicClientWrapper>(PackageVerificationTopicClientBindingKey)))
                 .WithParameter(new ResolvedParameter(
                     (pi, ctx) => pi.ParameterType == typeof(IBrokeredMessageSerializer<SignatureValidationMessage>),
-                    (pi, ctx) => ctx.Resolve<SignatureValidationMessageSerializer>()
-                    ))
+                    (pi, ctx) => ctx.Resolve<SignatureValidationMessageSerializer>()))
                 .As<IProcessSignatureEnqueuer>();
 
             containerBuilder

@@ -31,6 +31,7 @@ namespace Validation.PackageSigning.ProcessSignature.Tests
             private readonly Mock<IFileDownloader> _packageDownloader;
             private readonly Mock<IValidatorStateService> _validatorStateService;
             private readonly Mock<ISignatureValidator> _signatureValidator;
+            private readonly Mock<IPackageValidationEnqueuer> _validationEnqueuer;
             private readonly Mock<ILogger<SignatureValidationMessageHandler>> _logger;
             private readonly SignatureValidationMessageHandler _target;
 
@@ -54,6 +55,7 @@ namespace Validation.PackageSigning.ProcessSignature.Tests
                 _packageDownloader = new Mock<IFileDownloader>();
                 _validatorStateService = new Mock<IValidatorStateService>();
                 _signatureValidator = new Mock<ISignatureValidator>();
+                _validationEnqueuer = new Mock<IPackageValidationEnqueuer>();
                 _logger = new Mock<ILogger<SignatureValidationMessageHandler>>();
 
                 _packageDownloader
@@ -75,6 +77,7 @@ namespace Validation.PackageSigning.ProcessSignature.Tests
                     _packageDownloader.Object,
                     _validatorStateService.Object,
                     _signatureValidator.Object,
+                    _validationEnqueuer.Object,
                     _logger.Object);
             }
 
@@ -168,6 +171,12 @@ namespace Validation.PackageSigning.ProcessSignature.Tests
                 _validatorStateService.Verify(
                     x => x.SaveStatusAsync(It.IsAny<ValidatorStatus>()),
                     Times.Once);
+                _validationEnqueuer.Verify(
+                    x => x.StartValidationAsync(It.IsAny<PackageValidationMessageData>()),
+                    Times.Once);
+                _validationEnqueuer.Verify(
+                    x => x.StartValidationAsync(It.Is<PackageValidationMessageData>(d => d.Type == PackageValidationMessageType.CheckValidator)),
+                    Times.Once);
             }
 
             [Theory]
@@ -184,6 +193,12 @@ namespace Validation.PackageSigning.ProcessSignature.Tests
                 Assert.Null(_validation.ValidatorIssues);
                 _validatorStateService.Verify(
                     x => x.SaveStatusAsync(It.IsAny<ValidatorStatus>()),
+                    Times.Never);
+                _validationEnqueuer.Verify(
+                    x => x.StartValidationAsync(It.IsAny<PackageValidationMessageData>()),
+                    Times.Never);
+                _validationEnqueuer.Verify(
+                    x => x.StartValidationAsync(It.Is<PackageValidationMessageData>(d => d.Type == PackageValidationMessageType.CheckValidator)),
                     Times.Never);
             }
 

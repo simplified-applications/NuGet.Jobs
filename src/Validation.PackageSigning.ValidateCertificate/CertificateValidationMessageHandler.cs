@@ -24,6 +24,7 @@ namespace Validation.PackageSigning.ValidateCertificate
         private readonly ICertificateStore _certificateStore;
         private readonly ICertificateValidationService _certificateValidationService;
         private readonly ICertificateVerifier _certificateVerifier;
+        private readonly IPackageValidationEnqueuer _validationEnqueuer;
         private readonly ILogger<CertificateValidationMessageHandler> _logger;
 
         private readonly int _maximumValidationFailures;
@@ -32,12 +33,14 @@ namespace Validation.PackageSigning.ValidateCertificate
             ICertificateStore certificateStore,
             ICertificateValidationService certificateValidationService,
             ICertificateVerifier certificateVerifier,
+            IPackageValidationEnqueuer validationEnqueuer,
             ILogger<CertificateValidationMessageHandler> logger,
             int maximumValidationFailures = CertificateValidationService.DefaultMaximumValidationFailures)
         {
             _certificateStore = certificateStore ?? throw new ArgumentNullException(nameof(certificateStore));
             _certificateValidationService = certificateValidationService ?? throw new ArgumentNullException(nameof(certificateValidationService));
             _certificateVerifier = certificateVerifier ?? throw new ArgumentNullException(nameof(certificateVerifier));
+            _validationEnqueuer = validationEnqueuer ?? throw new ArgumentNullException(nameof(validationEnqueuer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             _maximumValidationFailures = maximumValidationFailures;
@@ -141,7 +144,14 @@ namespace Validation.PackageSigning.ValidateCertificate
                     return false;
                 }
 
-                return HasValidationCompleted(validation, result);
+                var completed = HasValidationCompleted(validation, result);
+                if (completed && message.SendCheckValidator)
+                {
+                    var messageData = PackageValidationMessageData.NewCheckValidator(message.ValidationId);
+                    await _validationEnqueuer.StartValidationAsync(messageData);
+                }
+
+                return completed;
             }
         }
 

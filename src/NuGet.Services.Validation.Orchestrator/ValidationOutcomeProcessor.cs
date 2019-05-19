@@ -52,7 +52,11 @@ namespace NuGet.Services.Validation.Orchestrator
             _validationConfigurationsByName = _validationConfiguration.Validations.ToDictionary(v => v.Name);
         }
 
-        public async Task ProcessValidationOutcomeAsync(PackageValidationSet validationSet, IValidatingEntity<T> validatingEntity, ValidationSetProcessorResult currentCallStats)
+        public async Task ProcessValidationOutcomeAsync(
+            PackageValidationSet validationSet,
+            IValidatingEntity<T> validatingEntity,
+            ValidationSetProcessorResult currentCallStats,
+            bool scheduleNextCheck)
         {
             var failedValidations = GetFailedValidations(validationSet);
 
@@ -119,7 +123,11 @@ namespace NuGet.Services.Validation.Orchestrator
 
                 if (AreOptionalValidationsRunning(validationSet))
                 {
-                    await ScheduleCheckIfNotTimedOut(validationSet, validatingEntity, tooLongNotificationAllowed: false);
+                    await ScheduleCheckIfNotTimedOut(
+                        validationSet,
+                        validatingEntity,
+                        scheduleNextCheck,
+                        tooLongNotificationAllowed: false);
                 }
                 else
                 {
@@ -128,7 +136,11 @@ namespace NuGet.Services.Validation.Orchestrator
             }
             else
             {
-                await ScheduleCheckIfNotTimedOut(validationSet, validatingEntity, tooLongNotificationAllowed: true);
+                await ScheduleCheckIfNotTimedOut(
+                    validationSet,
+                    validatingEntity,
+                    scheduleNextCheck,
+                    tooLongNotificationAllowed: true);
             }
         }
 
@@ -145,6 +157,13 @@ namespace NuGet.Services.Validation.Orchestrator
 
         private async Task CleanupValidationStorageAsync(PackageValidationSet validationSet)
         {
+            // First, mark the validation set as completed. This means future checks on this validaiton set will no-op.
+            // We do this step first because the database is considered the master. If the validation set is marked as
+            // completed but the validation set package file (which is deleted next) still exists, there's no impact
+            // other than a little wasted blob storage space.
+            validationSet.Completed = true;
+            await _validationStorageService.UpdateValidationSetAsync(validationSet);
+
             await _packageFileService.DeletePackageForValidationSetAsync(validationSet);
         }
 
@@ -257,22 +276,29 @@ namespace NuGet.Services.Validation.Orchestrator
             return validationSetDuration;
         }
 
-        private async Task ScheduleCheckIfNotTimedOut(PackageValidationSet validationSet, IValidatingEntity<T> validatingEntity, bool tooLongNotificationAllowed)
+        private async Task ScheduleCheckIfNotTimedOut(
+            PackageValidationSet validationSet,
+            IValidatingEntity<T> validatingEntity,
+            bool scheduleNextCheck,
+            bool tooLongNotificationAllowed)
         {
             var validationSetDuration = await UpdateValidationDurationAsync(validationSet, validatingEntity, tooLongNotificationAllowed);
 
             // Schedule another check if we haven't reached the validation set timeout yet.
             if (validationSetDuration <= _validationConfiguration.TimeoutValidationSetAfter)
             {
-                var messageData = new PackageValidationMessageData(
-                    validationSet.PackageId,
-                    validationSet.PackageNormalizedVersion,
-                    validationSet.ValidationTrackingId,
-                    validationSet.ValidatingType,
-                    entityKey: validationSet.PackageKey);
-                var postponeUntil = DateTimeOffset.UtcNow + _validationConfiguration.ValidationMessageRecheckPeriod;
+                if (scheduleNextCheck)
+                {
+                    var messageData = PackageValidationMessageData.NewProcessValidationSet(
+                        validationSet.PackageId,
+                        validationSet.PackageNormalizedVersion,
+                        validationSet.ValidationTrackingId,
+                        validationSet.ValidatingType,
+                        entityKey: validationSet.PackageKey);
+                    var postponeUntil = DateTimeOffset.UtcNow + _validationConfiguration.ValidationMessageRecheckPeriod;
 
-                await _validationEnqueuer.StartValidationAsync(messageData, postponeUntil);
+                    await _validationEnqueuer.StartValidationAsync(messageData, postponeUntil);
+                }
             }
             else
             {

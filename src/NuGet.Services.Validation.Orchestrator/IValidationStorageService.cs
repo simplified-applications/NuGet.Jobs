@@ -26,6 +26,8 @@ namespace NuGet.Services.Validation.Orchestrator
         /// <returns>Validation set instance if found, null otherwise.</returns>
         Task<PackageValidationSet> GetValidationSetAsync(Guid validationTrackingId);
 
+        Task<PackageValidationSet> TryGetParentValidationSetAsync(Guid validationId);
+
         /// <summary>
         /// Gets the number of validation sets that the provided entity has.
         /// </summary>

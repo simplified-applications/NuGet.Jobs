@@ -29,6 +29,7 @@ namespace Validation.PackageSigning.ValidateCertificate.Tests
         private readonly Mock<IValidationEntitiesContext> _context;
         private readonly Mock<ITelemetryService> _telemetryService;
         private readonly Mock<ICertificateStore> _certificateStore;
+        private readonly Mock<IPackageValidationEnqueuer> _validationEnqueuer;
 
         private readonly CertificateValidationMessageHandler _target;
 
@@ -39,6 +40,7 @@ namespace Validation.PackageSigning.ValidateCertificate.Tests
             _context = new Mock<IValidationEntitiesContext>();
             _telemetryService = new Mock<ITelemetryService>();
             _certificateStore = new Mock<ICertificateStore>();
+            _validationEnqueuer = new Mock<IPackageValidationEnqueuer>();
 
             var certificateValidationService = new CertificateValidationService(
                 _context.Object,
@@ -49,6 +51,7 @@ namespace Validation.PackageSigning.ValidateCertificate.Tests
                 _certificateStore.Object,
                 certificateValidationService,
                 new OnlineCertificateVerifier(),
+                _validationEnqueuer.Object,
                 Mock.Of<ILogger<CertificateValidationMessageHandler>>());
         }
 
@@ -127,7 +130,11 @@ namespace Validation.PackageSigning.ValidateCertificate.Tests
                              .Returns(Task.FromResult(certificate));
 
             // Act
-            await _target.HandleAsync(new CertificateValidationMessage(certificateKey: endCertificateKey, validationId: validationId));
+            await _target.HandleAsync(new CertificateValidationMessage(
+                certificateKey: endCertificateKey,
+                validationId: validationId,
+                revalidateRevokedCertificate: false,
+                sendCheckValidator: false));
 
             // Assert
             Assert.Equal(expectedCertificateStatus, validation.Status);
@@ -278,7 +285,11 @@ namespace Validation.PackageSigning.ValidateCertificate.Tests
                              .Returns(Task.FromResult(certificate));
 
             // Act
-            await _target.HandleAsync(new CertificateValidationMessage(certificateKey: endCertificateKey, validationId: validationId));
+            await _target.HandleAsync(new CertificateValidationMessage(
+                certificateKey: endCertificateKey,
+                validationId: validationId,
+                revalidateRevokedCertificate: false,
+                sendCheckValidator: false));
 
             // Assert
             Assert.Equal(EndCertificateStatus.Revoked, validation.Status);

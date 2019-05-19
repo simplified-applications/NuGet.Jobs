@@ -26,6 +26,7 @@ namespace NuGet.Jobs.Validation.PackageSigning.ProcessSignature
         private readonly IFileDownloader _packageDownloader;
         private readonly IValidatorStateService _validatorStateService;
         private readonly ISignatureValidator _signatureValidator;
+        private readonly IPackageValidationEnqueuer _validationEnqueuer;
         private readonly ILogger<SignatureValidationMessageHandler> _logger;
 
         /// <summary>
@@ -39,11 +40,13 @@ namespace NuGet.Jobs.Validation.PackageSigning.ProcessSignature
             IFileDownloader packageDownloader,
             IValidatorStateService validatorStateService,
             ISignatureValidator signatureValidator,
+            IPackageValidationEnqueuer validationEnqueuer,
             ILogger<SignatureValidationMessageHandler> logger)
         {
             _packageDownloader = packageDownloader ?? throw new ArgumentNullException(nameof(packageDownloader));
             _validatorStateService = validatorStateService ?? throw new ArgumentNullException(nameof(validatorStateService));
             _signatureValidator = signatureValidator ?? throw new ArgumentNullException(nameof(signatureValidator));
+            _validationEnqueuer = validationEnqueuer ?? throw new ArgumentNullException(nameof(validationEnqueuer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -156,7 +159,14 @@ namespace NuGet.Jobs.Validation.PackageSigning.ProcessSignature
                 }
 
                 // Save the resulting validation status.
-                return await SaveStatusAsync(validation, message);
+                var completed = await SaveStatusAsync(validation, message);
+                if (completed)
+                {
+                    var messageData = PackageValidationMessageData.NewCheckValidator(message.ValidationId);
+                    await _validationEnqueuer.StartValidationAsync(messageData);
+                }
+
+                return completed;
             }
         }
 

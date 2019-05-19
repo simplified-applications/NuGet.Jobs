@@ -8,6 +8,8 @@ using System.Data.Common;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using Autofac;
+using Autofac.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -22,6 +24,8 @@ namespace NuGet.Jobs.Validation
     public abstract class ValidationJobBase : JsonConfigurationJob
     {
         private const string PackageDownloadTimeoutName = "PackageDownloadTimeout";
+        private const string PackageValidationServiceBusSectionName = "PackageValidationServiceBus";
+        private const string PackageValidationServiceBusBindingKey = "PackageValidationServiceBusBindingKey";
 
         /// <summary>
         /// The maximum number of concurrent connections that can be established to a single server.
@@ -44,6 +48,7 @@ namespace NuGet.Jobs.Validation
             services.AddTransient<ICommonTelemetryService, CommonTelemetryService>();
             services.AddTransient<IDiagnosticsService, LoggerDiagnosticsService>();
             services.AddTransient<IFileDownloader, PackageDownloader>();
+            services.AddTransient<IServiceBusMessageSerializer, ServiceBusMessageSerializer>();
 
             services.AddTransient<ICloudBlobClient>(c =>
             {
@@ -60,6 +65,8 @@ namespace NuGet.Jobs.Validation
 
                 return new SubscriptionClientWrapper(config.ConnectionString, config.TopicPath, config.SubscriptionName);
             });
+
+            services.Configure<PackageValidationServiceBusConfiguration>(configurationRoot.GetSection(PackageValidationServiceBusSectionName));
 
             services.AddSingleton(p =>
             {
@@ -78,6 +85,27 @@ namespace NuGet.Jobs.Validation
 
                 return client;
             });
+        }
+
+        protected override void ConfigureDefaultAutofacJobServices(ContainerBuilder containerBuilder)
+        {
+            base.ConfigureDefaultAutofacJobServices(containerBuilder);
+
+            containerBuilder
+                .Register(c =>
+                {
+                    var serviceBusConfiguration = c.Resolve<IOptionsSnapshot<PackageValidationServiceBusConfiguration>>();
+                    var topicClient = new TopicClientWrapper(serviceBusConfiguration.Value.ConnectionString, serviceBusConfiguration.Value.TopicPath);
+                    return topicClient;
+                })
+                .Keyed<TopicClientWrapper>(PackageValidationServiceBusBindingKey);
+
+            containerBuilder
+                .RegisterType<PackageValidationEnqueuer>()
+                .WithParameter(new ResolvedParameter(
+                    (pi, ctx) => pi.ParameterType == typeof(ITopicClient),
+                    (pi, ctx) => ctx.ResolveKeyed<TopicClientWrapper>(PackageValidationServiceBusBindingKey)))
+                .As<IPackageValidationEnqueuer>();
         }
 
         private void ConfigureDatabaseServices(IServiceCollection services)
